@@ -190,8 +190,8 @@ function getLocalIPs(): string[] {
 // API Endpoints
 app.get('/api/network-info', (req, res) => {
   const ips = getLocalIPs();
-  // Pick primary LAN IP or fallback to example IP matching screenshots
-  const primaryIP = ips.length > 0 ? ips[0] : '10.187.145.212';
+  const isHotspot = store.teacher?.networkMode === 'hotspot';
+  const primaryIP = isHotspot ? '192.168.137.1' : (ips.length > 0 ? ips[0] : '10.187.145.212');
   res.json({
     primaryIP,
     allIPs: ips,
@@ -200,6 +200,74 @@ app.get('/api/network-info', (req, res) => {
     simplifiedUrl: `http://school.local:${PORT}`,
     fullUrl: `http://${primaryIP}:${PORT}`,
   });
+});
+
+// Admin Authentication endpoint
+app.post('/api/admin/login', (req, res) => {
+  const { username, password } = req.body;
+  if (username === 'admin' && password === 'Ahmed1ggr') {
+    res.json({ success: true, role: 'super_admin' });
+  } else {
+    res.status(401).json({ error: 'بيانات المدير غير صحيحة' });
+  }
+});
+
+// Batch import students from encrypted transfer
+app.post('/api/students/import-batch', (req, res) => {
+  const { students } = req.body;
+  if (Array.isArray(students)) {
+    const existingIds = new Set(store.students.map((s) => s.nationalId));
+    let addedCount = 0;
+    for (const st of students) {
+      if (!existingIds.has(st.nationalId)) {
+        store.students.push(st);
+        existingIds.add(st.nationalId);
+        addedCount++;
+      }
+    }
+    const time = new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    store.logs.unshift({
+      id: `log-${Date.now()}`,
+      text: `تم استيراد بيانات (${addedCount}) طالباً بنجاح عبر كود النقل المشفر.`,
+      timestamp: time,
+      type: 'info',
+    });
+    saveStore();
+    res.json({ success: true, count: addedCount, students: store.students });
+  } else {
+    res.status(400).json({ error: 'Invalid students list' });
+  }
+});
+
+// Delete student
+app.delete('/api/students/:id', (req, res) => {
+  const std = store.students.find((s) => s.id === req.params.id);
+  store.students = store.students.filter((s) => s.id !== req.params.id);
+  if (std) {
+    const time = new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    store.logs.unshift({
+      id: `log-${Date.now()}`,
+      text: `تم حذف الطالب (${std.name}) من قاعدة البيانات بواسطة المشرف.`,
+      timestamp: time,
+      type: 'warning',
+    });
+  }
+  saveStore();
+  res.json({ success: true, students: store.students });
+});
+
+// Reset submissions
+app.post('/api/submissions/reset', (req, res) => {
+  store.submissions = [];
+  const time = new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  store.logs.unshift({
+    id: `log-${Date.now()}`,
+    text: `قام المدير العام بإعادة ضبط وإتاحة محاولات الاختبار للجميع مجدداً.`,
+    timestamp: time,
+    type: 'warning',
+  });
+  saveStore();
+  res.json({ success: true });
 });
 
 app.get('/api/state', (req, res) => {

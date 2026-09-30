@@ -65,6 +65,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
 
   // Anti-Cheat Warning Modal State
   const [showAntiCheatModal, setShowAntiCheatModal] = useState(false);
+  const [strikesCount, setStrikesCount] = useState(0);
 
   // Setup countdown timer
   useEffect(() => {
@@ -84,30 +85,64 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
     return () => clearInterval(interval);
   }, [activeQuiz, timeLeftSeconds]);
 
-  // Anti-Cheat listeners: tab visibility & blur
+  // Anti-Cheat listeners: tab visibility & blur & copy prevention
   useEffect(() => {
     if (!activeQuiz || !teacherSettings.antiCheat) return;
 
+    const maxViolations = teacherSettings.security?.maxViolations || 2;
+
+    const handleViolation = (reason: string) => {
+      setStrikesCount((prev) => {
+        const next = prev + 1;
+        onReportCheat(`إنذار رقم (${next} من ${maxViolations}): ${reason}`);
+
+        if (next >= maxViolations) {
+          setShowAntiCheatModal(false);
+          alert(`⚠️ تم رصد (${next}) مخالفات أمنية! سيتم إنهاء الاختبار وقفل التسليم فوراً.`);
+          handleAutoSubmit();
+        } else {
+          setShowAntiCheatModal(true);
+        }
+        return next;
+      });
+    };
+
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        setShowAntiCheatModal(true);
-        onReportCheat('مغادرة صفحة الاختبار أو فتح تطبيق آخر في الجوال');
+        handleViolation('مغادرة صفحة الاختبار أو فتح تطبيق آخر في الجوال');
       }
     };
 
     const handleWindowBlur = () => {
-      setShowAntiCheatModal(true);
-      onReportCheat('فقدان تركيز النافذة / محاولة الخروج');
+      handleViolation('فقدان تركيز النافذة / محاولة الخروج');
+    };
+
+    // Block copy / cut / context menu if enabled
+    const handleContextMenu = (e: MouseEvent) => {
+      if (teacherSettings.security?.blockCopyPaste !== false) {
+        e.preventDefault();
+      }
+    };
+
+    const handleCopy = (e: ClipboardEvent) => {
+      if (teacherSettings.security?.blockCopyPaste !== false) {
+        e.preventDefault();
+        alert('نسخ الأسئلة غير مسموح به في هذا الاختبار.');
+      }
     };
 
     window.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('blur', handleWindowBlur);
+    window.addEventListener('contextmenu', handleContextMenu);
+    window.addEventListener('copy', handleCopy);
 
     return () => {
       window.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('blur', handleWindowBlur);
+      window.removeEventListener('contextmenu', handleContextMenu);
+      window.removeEventListener('copy', handleCopy);
     };
-  }, [activeQuiz, teacherSettings.antiCheat]);
+  }, [activeQuiz, teacherSettings.antiCheat, teacherSettings.security]);
 
   const handleStartQuiz = (quiz: Quiz) => {
     // Check if already submitted

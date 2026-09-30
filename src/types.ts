@@ -63,6 +63,26 @@ export interface ActivityLog {
   type: 'info' | 'success' | 'warning' | 'danger';
 }
 
+export interface SecuritySettings {
+  enabled: boolean;
+  blockAppSwitch: boolean;
+  blockCopyPaste: boolean;
+  enforceFullscreen: boolean;
+  maxViolations: number;
+  blockExternalNet: boolean;
+}
+
+export interface ConnectedDevice {
+  id: string;
+  studentId?: string;
+  studentName: string;
+  ip: string;
+  deviceType: string;
+  status: 'online' | 'in_quiz' | 'blocked';
+  lastSeen: string;
+  violationsCount: number;
+}
+
 export interface TeacherSettings {
   username: string;
   name: string;
@@ -73,7 +93,9 @@ export interface TeacherSettings {
   theme: ThemeAccent;
   darkMode: boolean;
   antiCheat: boolean;
+  security: SecuritySettings;
   networkMode: 'wifi' | 'hotspot';
+  hotspotIP?: string;
   gradesAnnounced: boolean;
 }
 

@@ -31,6 +31,7 @@ import {
   Clock,
   CheckCircle,
   Laptop,
+  Sliders,
 } from 'lucide-react';
 import {
   Quiz,
@@ -59,6 +60,9 @@ interface TeacherDashboardProps {
   onOpenWindowsGuide: () => void;
   onOpenEditStudent: (student: Student) => void;
   onOpenTeacherSetup?: () => void;
+  onOpenAdminPortal?: () => void;
+  onOpenEncryptedTransfer?: () => void;
+  onOpenSecuritySettings?: () => void;
   onSwitchToStudentView: () => void;
   onRefreshNetwork: () => void;
 }
@@ -80,6 +84,9 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   onOpenWindowsGuide,
   onOpenEditStudent,
   onOpenTeacherSetup,
+  onOpenAdminPortal,
+  onOpenEncryptedTransfer,
+  onOpenSecuritySettings,
   onSwitchToStudentView,
   onRefreshNetwork,
 }) => {
@@ -100,7 +107,9 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   const [teacherSubject, setTeacherSubject] = useState(settings.subject);
   const [teacherPhone, setTeacherPhone] = useState(settings.phone);
 
-  const studentLink = networkInfo.fullUrl || `http://${networkInfo.primaryIP}:${networkInfo.port}`;
+  // Effective IP calculation (Fixed Hotspot mode)
+  const effectiveIP = settings.networkMode === 'hotspot' ? (settings.hotspotIP || '192.168.137.1') : networkInfo.primaryIP;
+  const studentLink = `http://${effectiveIP}:${networkInfo.port}`;
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(studentLink);
@@ -236,6 +245,16 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               <HelpCircle className="w-4 h-4" />
             </button>
 
+            {onOpenAdminPortal && (
+              <button
+                onClick={onOpenAdminPortal}
+                className="p-2 rounded-xl bg-red-950/50 hover:bg-red-900/60 text-red-400 border border-red-500/40 transition-all shadow-sm"
+                title="لوحة تحكم المدير العام (Admin: admin / Ahmed1ggr)"
+              >
+                <ShieldAlert className="w-4 h-4" />
+              </button>
+            )}
+
             <button
               onClick={() => onUpdateSettings({ darkMode: !settings.darkMode })}
               className="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-amber-300 hover:text-amber-200 transition-colors"
@@ -332,22 +351,30 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               <div className="flex items-center gap-1.5 shrink-0">
                 <button
                   onClick={handleShare}
-                  className="p-2 rounded-xl bg-purple-900/40 hover:bg-purple-800 text-purple-200 transition-colors"
+                  className="p-2 rounded-xl bg-purple-900/40 hover:bg-purple-800 text-purple-200 transition-colors cursor-pointer"
                   title="مشاركة الرابط"
                 >
                   <Share2 className="w-4 h-4" />
                 </button>
                 <button
                   onClick={handleCopyLink}
-                  className="p-2 rounded-xl bg-purple-900/40 hover:bg-purple-800 text-purple-200 transition-colors"
+                  className="p-2 rounded-xl bg-purple-900/40 hover:bg-purple-800 text-purple-200 transition-colors cursor-pointer"
                   title="نسخ الرابط"
                 >
                   {copiedLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
                 </button>
               </div>
             </div>
+
+            {settings.networkMode === 'hotspot' && (
+              <div className="p-2 rounded-xl bg-blue-950/50 border border-blue-500/40 text-[11px] text-blue-200 flex items-center justify-between mt-1">
+                <span>📡 نمط نقطة اتصال ويندوز (Hotspot) نشط: {effectiveIP}</span>
+                <span className="text-emerald-400 font-bold">بدون إنترنت ✓</span>
+              </div>
+            )}
+
             <div className="text-[11px] text-purple-400/80 font-mono dir-ltr">
-              رابط مبسط: {networkInfo.simplifiedUrl}
+              رابط مبسط: http://school.local:{networkInfo.port}
             </div>
           </div>
 
@@ -533,14 +560,15 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               </button>
 
               <button
-                onClick={() => alert('يمكنك استيراد ملفات CSV / Excel مباشرة للطلاب')}
-                className="p-3 bg-[#131b2e] hover:bg-slate-850 border border-slate-800 rounded-2xl flex flex-col items-center justify-center gap-1 text-slate-200 transition-colors"
+                onClick={onOpenEncryptedTransfer}
+                className="p-3 bg-[#131b2e] hover:bg-slate-850 border border-purple-500/30 rounded-2xl flex flex-col items-center justify-center gap-1 text-purple-300 transition-colors cursor-pointer"
+                title="مشاركة كود نقل الطلاب المشفر مع أستاذ آخر"
               >
                 <div className="flex items-center gap-1 text-xs font-bold">
-                  <Download className="w-3.5 h-3.5 text-purple-400" />
-                  <span>استيراد</span>
+                  <Share2 className="w-3.5 h-3.5 text-purple-400" />
+                  <span>نقل مشفر</span>
                 </div>
-                <span className="text-[10px] text-slate-400">قائمة الطلاب</span>
+                <span className="text-[10px] text-slate-400">كود للأستاذ الآخر</span>
               </button>
 
               <button
@@ -571,6 +599,10 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
             <div className="space-y-3">
               {filteredStudents.map((std) => {
                 const total = std.exam1 + std.exam2 + std.participation + std.extraPoints;
+                const maskedNatId = std.nationalId && std.nationalId.length >= 6
+                  ? `${std.nationalId.slice(0, 3)}****${std.nationalId.slice(-2)}`
+                  : '••••••••••';
+
                 return (
                   <div
                     key={std.id}
@@ -582,10 +614,24 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                           <GraduationCap className="w-4 h-4 text-purple-400" />
                           <span>{std.name}</span>
                         </h4>
-                        <div className="text-[11px] text-slate-400 mt-0.5 space-x-2 space-x-reverse">
-                          <span>هوية: {std.nationalId}</span>
-                          <span>•</span>
-                          <span>{std.gradeSection}</span>
+                        <div className="text-[11px] text-slate-400 mt-1 flex flex-wrap items-center gap-2">
+                          <span className="px-2 py-0.5 rounded-md bg-purple-950/60 text-purple-300 border border-purple-500/30 font-bold">
+                            {std.gradeSection}
+                          </span>
+                          <span className="font-mono text-slate-300">
+                            جوال: {std.phone || '05xxxxxxxx'}
+                          </span>
+                          <span className="font-mono text-slate-400 flex items-center gap-1">
+                            <span>هوية: {maskedNatId}</span>
+                            <button
+                              type="button"
+                              onClick={onOpenAdminPortal}
+                              className="text-[9px] text-amber-400 bg-amber-950/40 hover:bg-amber-900/60 px-1.5 py-0.5 rounded border border-amber-500/20 cursor-pointer"
+                              title="كشف الهوية الكاملة عبر حساب المدير"
+                            >
+                              🔒 للمدير
+                            </button>
+                          </span>
                         </div>
                       </div>
 
@@ -876,6 +922,18 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                   منع إعادة الاختبار مفعل: الطالب الذي يحل اختباراً لا يمكنه الدخول أو استعراض الأسئلة مرة أخرى نهائياً لحماية سرية الأسئلة.
                 </span>
               </div>
+
+              {onOpenSecuritySettings && (
+                <div className="pt-1">
+                  <button
+                    onClick={onOpenSecuritySettings}
+                    className="w-full py-2.5 px-3 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/30 text-xs font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                  >
+                    <Sliders className="w-4 h-4 text-purple-400" />
+                    <span>تخصيص قواعد وإجراءات مكافحة الغش المتقدمة 🛡️</span>
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Local Network Info - Screenshot #14 */}

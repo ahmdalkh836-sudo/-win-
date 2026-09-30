@@ -14,7 +14,10 @@ import { CreateQuizModal } from './components/CreateQuizModal';
 import { WindowsGuideModal } from './components/WindowsGuideModal';
 import { EditGradesModal } from './components/EditGradesModal';
 import { TeacherSetupModal } from './components/TeacherSetupModal';
-import { Laptop, Smartphone, HelpCircle, UserCog } from 'lucide-react';
+import { AdminPortalModal } from './components/AdminPortalModal';
+import { EncryptedTransferModal } from './components/EncryptedTransferModal';
+import { SecuritySettingsModal } from './components/SecuritySettingsModal';
+import { Laptop, Smartphone, HelpCircle, UserCog, ShieldAlert } from 'lucide-react';
 
 export default function App() {
   // Current View: 'teacher' | 'student'
@@ -36,6 +39,14 @@ export default function App() {
     theme: 'purple',
     darkMode: true,
     antiCheat: true,
+    security: {
+      enabled: true,
+      blockAppSwitch: true,
+      blockCopyPaste: true,
+      enforceFullscreen: true,
+      maxViolations: 2,
+      blockExternalNet: true,
+    },
     networkMode: 'wifi',
     gradesAnnounced: true,
   });
@@ -57,6 +68,9 @@ export default function App() {
   const [isCreateQuizOpen, setIsCreateQuizOpen] = useState(false);
   const [isWindowsGuideOpen, setIsWindowsGuideOpen] = useState(false);
   const [isTeacherSetupOpen, setIsTeacherSetupOpen] = useState(false);
+  const [isAdminPortalOpen, setIsAdminPortalOpen] = useState(false);
+  const [isEncryptedTransferOpen, setIsEncryptedTransferOpen] = useState(false);
+  const [isSecuritySettingsOpen, setIsSecuritySettingsOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
 
   // Initial load & URL check
@@ -237,6 +251,45 @@ export default function App() {
     }
   };
 
+  const handleImportStudents = async (importedStudents: Student[]) => {
+    setStudents((prev) => {
+      const existingIds = new Set(prev.map((s) => s.nationalId));
+      const fresh = importedStudents.filter((s) => !existingIds.has(s.nationalId));
+      return [...prev, ...fresh];
+    });
+
+    try {
+      await fetch('/api/students/import-batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ students: importedStudents }),
+      });
+      fetchInitialState(true);
+    } catch (err) {
+      console.error('Failed to sync imported students with backend', err);
+    }
+  };
+
+  const handleDeleteStudent = async (studentId: string) => {
+    setStudents((prev) => prev.filter((s) => s.id !== studentId));
+    try {
+      await fetch(`/api/students/${studentId}`, { method: 'DELETE' });
+      fetchInitialState(true);
+    } catch (err) {
+      console.error('Failed to delete student on backend', err);
+    }
+  };
+
+  const handleResetSubmissions = async () => {
+    setSubmissions([]);
+    try {
+      await fetch('/api/submissions/reset', { method: 'POST' });
+      fetchInitialState(true);
+    } catch (err) {
+      console.error('Failed to reset submissions on backend', err);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 font-['Cairo',sans-serif] text-slate-100">
       {/* Top Floating Role & Test Switcher Banner */}
@@ -300,6 +353,9 @@ export default function App() {
           onOpenWindowsGuide={() => setIsWindowsGuideOpen(true)}
           onOpenEditStudent={(std) => setEditingStudent(std)}
           onOpenTeacherSetup={() => setIsTeacherSetupOpen(true)}
+          onOpenAdminPortal={() => setIsAdminPortalOpen(true)}
+          onOpenEncryptedTransfer={() => setIsEncryptedTransferOpen(true)}
+          onOpenSecuritySettings={() => setIsSecuritySettingsOpen(true)}
           onSwitchToStudentView={() => setActiveRole('student')}
           onRefreshNetwork={fetchNetworkInfo}
         />
@@ -319,6 +375,30 @@ export default function App() {
       )}
 
       {/* MODALS */}
+      <AdminPortalModal
+        isOpen={isAdminPortalOpen}
+        onClose={() => setIsAdminPortalOpen(false)}
+        students={students}
+        settings={settings}
+        onUpdateSettings={handleUpdateSettings}
+        onDeleteStudent={handleDeleteStudent}
+        onResetSubmissions={handleResetSubmissions}
+      />
+
+      <EncryptedTransferModal
+        isOpen={isEncryptedTransferOpen}
+        onClose={() => setIsEncryptedTransferOpen(false)}
+        students={students}
+        onImportStudents={handleImportStudents}
+      />
+
+      <SecuritySettingsModal
+        isOpen={isSecuritySettingsOpen}
+        onClose={() => setIsSecuritySettingsOpen(false)}
+        settings={settings}
+        onUpdateSettings={handleUpdateSettings}
+      />
+
       <TeacherSetupModal
         isOpen={isTeacherSetupOpen || !settings.isConfigured}
         initialSettings={settings}

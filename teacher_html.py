@@ -552,21 +552,26 @@ def get_teacher_html(local_ip, port):
         box.innerHTML = '<p style="text-align: center; color: var(--text-muted); font-size: 12px;">لا يوجد طلاب مطابقين للبحث.</p>';
         return;
       }}
-      box.innerHTML = filtered.map(s => `
-        <div style="padding: 10px; border-radius: 12px; background: rgba(0,0,0,0.15); border: 1px solid var(--border); margin-bottom: 8px;">
+      box.innerHTML = filtered.map(s => {
+        let maskedId = (s.nationalId && s.nationalId.length >= 6)
+          ? s.nationalId.slice(0, 3) + '****' + s.nationalId.slice(-2)
+          : '••••••••••';
+        return `
+        <div style="padding: 12px; border-radius: 14px; background: rgba(0,0,0,0.15); border: 1px solid var(--border); margin-bottom: 8px;">
           <div style="display: flex; justify-content: space-between; font-weight: 700; font-size: 13px;">
-            <span>${{s.name}}</span>
-            <span style="color: var(--primary);">هوية: ${{s.nationalId}}</span>
+            <span>${s.name}</span>
+            <span style="color: var(--primary); font-family: monospace;">هوية: ${maskedId} <span style="font-size: 10px; color: #f59e0b;">🔒</span></span>
           </div>
-          <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">${{s.gradeSection || 'أول ثانوي - شعبة 1'}}</div>
+          <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">${s.gradeSection || 'أول ثانوي - شعبة 1'} • جوال: ${s.phone || 'غير مسجل'}</div>
           <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 8px; text-align: center; font-size: 10px;">
-            <div style="background: rgba(255,255,255,0.04); padding: 4px; border-radius: 6px;">شهري 1: ${{s.exam1 || 0}}</div>
-            <div style="background: rgba(255,255,255,0.04); padding: 4px; border-radius: 6px;">شهري 2: ${{s.exam2 || 0}}</div>
-            <div style="background: rgba(255,255,255,0.04); padding: 4px; border-radius: 6px;">مشاركة: ${{s.participation || 0}}</div>
-            <div style="background: rgba(139, 92, 246, 0.2); padding: 4px; border-radius: 6px; color: var(--primary); font-weight: 800;">المجموع: ${{ (s.exam1||0)+(s.exam2||0)+(s.participation||0)+(s.extraPoints||0) }}</div>
+            <div style="background: rgba(255,255,255,0.04); padding: 4px; border-radius: 6px;">شهري 1: ${s.exam1 || 0}</div>
+            <div style="background: rgba(255,255,255,0.04); padding: 4px; border-radius: 6px;">شهري 2: ${s.exam2 || 0}</div>
+            <div style="background: rgba(255,255,255,0.04); padding: 4px; border-radius: 6px;">مشاركة: ${s.participation || 0}</div>
+            <div style="background: rgba(139, 92, 246, 0.2); padding: 4px; border-radius: 6px; color: var(--primary); font-weight: 800;">المجموع: ${ (s.exam1||0)+(s.exam2||0)+(s.participation||0)+(s.extraPoints||0) }</div>
           </div>
         </div>
-      `).join('');
+      `;
+      }).join('');
     }}
 
     function renderSubmissions() {{
@@ -598,6 +603,43 @@ def get_teacher_html(local_ip, port):
           <span style="color: var(--text-muted); direction: ltr;">${{l.timestamp}}</span>
         </div>
       `).join('');
+    }}
+
+    function setNetworkMode(mode) {{
+      if (mode === 'hotspot') {{
+        currentIP = "192.168.137.1";
+        studentURL = "http://" + currentIP + ":" + currentPort + "/student";
+        document.getElementById('student-url-display').innerText = studentURL;
+        document.getElementById('qr-url-text').innerText = studentURL;
+        document.getElementById('network-badge-text').innerText = "نشط: نقطة اتصال (Hotspot)";
+        document.getElementById('server-network-desc').innerText = "مشاركة عبر نقطة اتصال Hotspot ويندوز (192.168.137.1)";
+        document.getElementById('btn-mode-hotspot').className = 'btn btn-primary';
+        document.getElementById('btn-mode-wifi').className = 'btn btn-secondary';
+        alert("📡 تم تفعيل نمط نقطة الاتصال (Hotspot) بنجاح!\\nالرابط للطلاب: " + studentURL);
+      }} else {{
+        currentIP = "{local_ip}";
+        studentURL = "http://" + currentIP + ":" + currentPort + "/student";
+        document.getElementById('student-url-display').innerText = studentURL;
+        document.getElementById('qr-url-text').innerText = studentURL;
+        document.getElementById('network-badge-text').innerText = "نشط: شبكة Wi-Fi المشتركة";
+        document.getElementById('server-network-desc').innerText = "مشاركة عبر راوتر المدرسة/المنزل";
+        document.getElementById('btn-mode-wifi').className = 'btn btn-primary';
+        document.getElementById('btn-mode-hotspot').className = 'btn btn-secondary';
+      }}
+      fetch('/api/teacher/settings', {{
+        method: 'POST',
+        headers: {{ 'Content-Type': 'application/json' }},
+        body: JSON.stringify({{ networkMode: mode }})
+      }});
+    }}
+
+    function toggleServerActive(active) {{
+      document.getElementById('server-status-text').innerText = active ? "خادم الحصة يعمل (نشط)" : "خادم الحصة متوقف";
+      fetch('/api/server/toggle', {{
+        method: 'POST',
+        headers: {{ 'Content-Type': 'application/json' }},
+        body: JSON.stringify({{ active }})
+      }});
     }}
 
     function switchTab(tabId) {{
