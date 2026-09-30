@@ -368,6 +368,16 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
             </button>
           </div>
 
+          {/* Quick Windows Download Button */}
+          <a
+            href="/download/windows-portable-package.zip"
+            download="Classroom_Quiz_Server_Windows.zip"
+            className="w-full py-2.5 px-4 bg-gradient-to-r from-blue-700 via-indigo-600 to-purple-700 hover:from-blue-600 hover:to-purple-600 text-white text-xs font-bold rounded-2xl shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer border border-blue-400/30"
+          >
+            <Download className="w-4 h-4 text-blue-200" />
+            <span>تحميل حزمة ويندوز للتشغيل في الفصل بدون إنترنت (Portable ZIP / EXE) 💻</span>
+          </a>
+
           <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-purple-500/20">
             <button
               onClick={onRefreshNetwork}

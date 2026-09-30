@@ -12,40 +12,30 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// High concurrency optimization for 40+ simultaneous student connections
+// High performance middlewares for 40+ concurrent clients
 app.use(cors());
 app.use(compression({ level: 6 }));
 app.use(express.json({ limit: '10mb' }));
 
-// Persistent data structure (in-memory with fallback to local JSON file for Windows/local usage)
 const DATA_FILE = path.join(__dirname, 'data_store.json');
 
-interface ServerStore {
-  teacher: any;
-  serverActive: boolean;
-  quizzes: any[];
-  students: any[];
-  submissions: any[];
-  logs: any[];
-}
-
-// Initial default data matching the screenshots
-const defaultData: ServerStore = {
+// Default initial data matching classroom screenshots
+const defaultData = {
   teacher: {
     name: 'احمد صبري',
     subject: 'فيزياء ثانوي',
     phone: '0533333333',
-    theme: 'purple', // 'blue' | 'emerald' | 'purple' | 'amber' | 'ruby'
+    theme: 'purple',
     darkMode: true,
     antiCheat: true,
-    networkMode: 'wifi', // 'wifi' | 'hotspot'
+    networkMode: 'wifi',
     gradesAnnounced: true,
   },
   serverActive: true,
   quizzes: [
     {
       id: 'quiz-1',
-      type: 'activity', // 'activity' | 'quiz'
+      type: 'activity',
       title: 'نشاط تفاعلي: لغز وتفكير إبداعي',
       subtitle: 'شارك بحلك واختبر سرعتك مع زملائك في الفصل!',
       instructions: 'فكر جيداً وأجب بسرعة لكسب نقاط التفاعل مع المعلم.',
@@ -160,25 +150,25 @@ function loadStore() {
   }
 }
 
-let saveTimeout: any = null;
-function saveStore() {
+// Debounced asynchronous file save to keep responses non-blocking for 40+ devices
+let saveTimeout = null;
+function saveStoreDebounced() {
   if (saveTimeout) clearTimeout(saveTimeout);
   saveTimeout = setTimeout(() => {
     fs.writeFile(DATA_FILE, JSON.stringify(store, null, 2), 'utf-8', (err) => {
-      if (err) console.error('Could not persist data store', err);
+      if (err) console.error('Error saving data store:', err);
     });
-  }, 250);
+  }, 300);
 }
 
 loadStore();
 
-// Helper to get local IPv4 addresses on the Windows / host machine
-function getLocalIPs(): string[] {
+// Local IPv4 detector for Windows Wi-Fi / Hotspot / Ethernet
+function getLocalIPs() {
   const interfaces = os.networkInterfaces();
-  const ips: string[] = [];
+  const ips = [];
   for (const name of Object.keys(interfaces)) {
     for (const net of interfaces[name] || []) {
-      // Skip over non-IPv4 and internal (i.e. 127.0.0.1) addresses
       if (net.family === 'IPv4' && !net.internal) {
         ips.push(net.address);
       }
@@ -187,10 +177,9 @@ function getLocalIPs(): string[] {
   return ips;
 }
 
-// API Endpoints
+// APIs
 app.get('/api/network-info', (req, res) => {
   const ips = getLocalIPs();
-  // Pick primary LAN IP or fallback to example IP matching screenshots
   const primaryIP = ips.length > 0 ? ips[0] : '10.187.145.212';
   res.json({
     primaryIP,
@@ -208,7 +197,7 @@ app.get('/api/state', (req, res) => {
 
 app.post('/api/teacher/settings', (req, res) => {
   store.teacher = { ...store.teacher, ...req.body };
-  saveStore();
+  saveStoreDebounced();
   res.json({ success: true, teacher: store.teacher });
 });
 
@@ -223,7 +212,7 @@ app.post('/api/server/toggle', (req, res) => {
     timestamp: time,
     type: store.serverActive ? 'success' : 'warning',
   });
-  saveStore();
+  saveStoreDebounced();
   res.json({ success: true, serverActive: store.serverActive, logs: store.logs });
 });
 
@@ -241,7 +230,7 @@ app.post('/api/quizzes', (req, res) => {
     timestamp: time,
     type: 'info',
   });
-  saveStore();
+  saveStoreDebounced();
   res.json({ success: true, quiz: newQuiz, quizzes: store.quizzes });
 });
 
@@ -258,7 +247,7 @@ app.post('/api/quizzes/:id/toggle', (req, res) => {
       timestamp: time,
       type: quiz.isOpen ? 'success' : 'warning',
     });
-    saveStore();
+    saveStoreDebounced();
     res.json({ success: true, quiz });
   } else {
     res.status(404).json({ error: 'Quiz not found' });
@@ -277,14 +266,12 @@ app.delete('/api/quizzes/:id', (req, res) => {
       type: 'warning',
     });
   }
-  saveStore();
+  saveStoreDebounced();
   res.json({ success: true, quizzes: store.quizzes });
 });
 
-// Student registration / login
 app.post('/api/students/auth', (req, res) => {
   const { nationalId, password, name, phone, gradeSection, isNew } = req.body;
-  
   if (isNew) {
     const existing = store.students.find((s) => s.nationalId === nationalId);
     if (existing) {
@@ -311,7 +298,7 @@ app.post('/api/students/auth', (req, res) => {
       timestamp: time,
       type: 'info',
     });
-    saveStore();
+    saveStoreDebounced();
     return res.json({ success: true, student: newStudent });
   } else {
     const student = store.students.find((s) => s.nationalId === nationalId && s.password === password);
@@ -322,7 +309,6 @@ app.post('/api/students/auth', (req, res) => {
   }
 });
 
-// Submit quiz
 app.post('/api/submissions', (req, res) => {
   const { quizId, studentId, studentName, answers } = req.body;
   const quiz = store.quizzes.find((q) => q.id === quizId);
@@ -330,17 +316,15 @@ app.post('/api/submissions', (req, res) => {
     return res.status(404).json({ error: 'Quiz not found' });
   }
 
-  // Prevent multiple submissions
   const alreadySubmitted = store.submissions.find(
-    (s: any) => s.quizId === quizId && s.studentId === studentId
+    (s) => s.quizId === quizId && s.studentId === studentId
   );
   if (alreadySubmitted) {
     return res.status(400).json({ error: 'لقد قمت بتسليم هذا الاختبار مسبقاً ولا يمكنك إعادته.' });
   }
 
-  // Calculate score
   let correctCount = 0;
-  const detailedAnswers = quiz.questions.map((q: any, idx: number) => {
+  const detailedAnswers = quiz.questions.map((q) => {
     const studentAns = answers[q.id];
     const isCorrect = studentAns === q.correctIndex;
     if (isCorrect) correctCount++;
@@ -379,11 +363,10 @@ app.post('/api/submissions', (req, res) => {
     type: 'success',
   });
 
-  saveStore();
+  saveStoreDebounced();
   res.json({ success: true, submission });
 });
 
-// Update student marks
 app.post('/api/students/:id/grades', (req, res) => {
   const student = store.students.find((s) => s.id === req.params.id);
   if (student) {
@@ -392,166 +375,28 @@ app.post('/api/students/:id/grades', (req, res) => {
     student.exam2 = Number(exam2 ?? student.exam2);
     student.participation = Number(participation ?? student.participation);
     student.extraPoints = Number(extraPoints ?? student.extraPoints);
-    saveStore();
+    saveStoreDebounced();
     res.json({ success: true, student });
   } else {
     res.status(404).json({ error: 'Student not found' });
   }
 });
 
-// Anti-cheat alert reported by student device
 app.post('/api/anti-cheat/alert', (req, res) => {
   const { studentName, reason } = req.body;
   const time = new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   store.logs.unshift({
     id: `log-${Date.now()}`,
-    text: `⚠️ تنبيه أمني / مكافحة الغش: الطالب "${studentName}" [${reason}]. تم إيقاف الاختبار مؤقتاً لحين العودة.`,
+    text: `⚠️ تنبيه أمني / مكافحة الغش: الطالب "${studentName}" [${reason}]. تم إيقاف الاختبار مؤقتاً.`,
     timestamp: time,
     type: 'danger',
   });
-  saveStore();
+  saveStoreDebounced();
   res.json({ success: true });
 });
 
-import JSZip from 'jszip';
-
-// Windows Portable Zip Package Generator Endpoint
-app.get('/download/windows-portable-package.zip', async (req, res) => {
-  try {
-    const zip = new JSZip();
-
-    // 1. Add Run_Classroom_Server.cmd
-    const cmdScript = `@echo off
-chcp 65001 >nul
-title خادم اختبارات الحصة الذكية - Classroom Quiz Server
-color 0B
-cls
-echo ===============================================================================
-echo                خادم اختبارات الحصة الذكية - Classroom Quiz Server
-echo                                 نسخة ويندوز
-echo ===============================================================================
-echo.
-echo [1/4] جاري فحص بيئة العمل والشبكة...
-
-:: Check if Node.js is installed
-where node >nul 2>nul
-if %errorlevel% neq 0 (
-    echo [تنبيه] Node.js غير مثبت في نظامك. جاري تجهيز الخادم تلقائياً...
-    powershell -Command "Write-Host 'جاري تحميل محرك التشغيل السريع Portable...' -ForegroundColor Yellow; Invoke-WebRequest -Uri 'https://nodejs.org/dist/v20.11.1/win-x64/node.exe' -OutFile 'node.exe'"
-    if exist node.exe (
-        set "NODE_CMD=node.exe"
-    ) else (
-        echo [خطأ] تعذر تحميل محرك التشغيل تلقائياً. يرجى تثبيت Node.js من: https://nodejs.org
-        pause
-        exit /b
-    )
-) else (
-    set "NODE_CMD=node"
-)
-
-:: Get Wi-Fi or Hotspot Local IPv4
-for /f "tokens=4" %%a in ('route print ^| findstr "\\<0.0.0.0\\>"') do (
-    set "LOCAL_IP=%%a"
-)
-
-echo.
-echo ===============================================================================
-echo  [2/4] تم تشغيل الخادم بنجاح! جاهز لاستقبال حتى 50 طالباً في وقت واحد بدون تعليق.
-echo -------------------------------------------------------------------------------
-echo  رابط دخول الطلاب من الجوالات والتابلت:
-echo  http://%LOCAL_IP%:3000
-echo.
-echo  أو مسح رمز QR المعروض على شاشتك أو البروجيكتور.
-echo ===============================================================================
-echo.
-echo [3/4] جاري فتح لوحة تحكم المعلم في متصفحك...
-timeout /t 2 >nul
-start http://localhost:3000
-
-echo.
-echo [4/4] الخادم يعمل الآن بشكل مستمر!
-echo * اترك هذه النافذة مفتوحة طوال الحصة.
-echo * لإيقاف الخادم: اضغط Ctrl + C ثم Y
-echo.
-
-%NODE_CMD% standalone-server.js
-pause
-`;
-    zip.file('Run_Classroom_Server.cmd', cmdScript);
-    zip.file('Run_Classroom_Server.bat', cmdScript);
-
-    // 2. Add standalone-server.js
-    const standaloneServerPath = path.join(__dirname, 'standalone-server.js');
-    if (fs.existsSync(standaloneServerPath)) {
-      zip.file('standalone-server.js', fs.readFileSync(standaloneServerPath, 'utf-8'));
-    }
-
-    // 3. Add package.json
-    const packageJsonPath = path.join(__dirname, 'package.json');
-    if (fs.existsSync(packageJsonPath)) {
-      zip.file('package.json', fs.readFileSync(packageJsonPath, 'utf-8'));
-    }
-
-    // 4. Add Readme in Arabic
-    const readmeText = `===================================================================
-     دليل تشغيل خادم اختبارات الحصة الذكية على نظام Windows
-===================================================================
-
-مرحباً بك يا أستاذنا الفاضل!
-تم تجهيز هذه الحزمة للعمل على أجهزة الكمبيوتر واللابتوب بنظام Windows
-وتتحمل أكثر من 40 إلى 50 طالباً في نفس اللحظة بدون أي تعليق أو بطء.
-
-خطوات التشغيل البسيطة:
-----------------------
-1. فك ضغط هذا المجلد في أي مكان على جهازك (مثلاً على سطح المكتب).
-2. انقر نقراً مزدوجاً على الملف: "Run_Classroom_Server.cmd" أو "Run_Classroom_Server.bat".
-3. ستفتح لوحة تحكم المعلم تلقائياً في متصفحك (Brave أو Chrome أو Edge).
-4. سيظهر على شاشتك رقم الآي بي (IP) الخاص بلابتوبك وكود QR كبير.
-5. اطلب من الطلاب في الفصل الاتصال بنفس شبكة الواي فاي أو الهوتسبوت الخاص بك،
-   ثم يفتحون المتصفح في جوالاتهم ويدخلون الرابط أو يمسحون الـ QR بكاميرا الجوال.
-
-كيف تبث شبكة هوتسبوت للطلاب بدون إنترنت؟
---------------------------------------------
-إذا كنت في فصل ولا يوجد راوتر إنترنت:
-1. افتح إعدادات ويندوز (Settings) -> Network & Internet.
-2. اختر Mobile Hotspot وفعل الزر إلى On.
-3. اجعل الطلاب يتصلون بهذه الشبكة من جوالاتهم.
-4. شغل ملف Run_Classroom_Server.cmd وسيتصل الجميع فوراً وبسرعة فائقة!
-
-مع تحيات فريق الدعم الفني.
-`;
-    zip.file('تعليمات_التشغيل_لويندوز.txt', readmeText);
-
-    // 5. Add dist folder files if built
-    const distPath = path.join(__dirname, 'dist');
-    if (fs.existsSync(distPath)) {
-      const addDirectoryToZip = (dirPath: string, zipFolder: JSZip) => {
-        const items = fs.readdirSync(dirPath);
-        for (const item of items) {
-          const fullPath = path.join(dirPath, item);
-          const stat = fs.statSync(fullPath);
-          if (stat.isDirectory()) {
-            addDirectoryToZip(fullPath, zipFolder.folder(item)!);
-          } else {
-            zipFolder.file(item, fs.readFileSync(fullPath));
-          }
-        }
-      };
-      addDirectoryToZip(distPath, zip.folder('dist')!);
-    }
-
-    const content = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
-    res.setHeader('Content-Type', 'application/zip');
-    res.setHeader('Content-Disposition', 'attachment; filename="Classroom_Quiz_Server_Windows.zip"');
-    res.send(content);
-  } catch (err) {
-    console.error('Failed to generate zip:', err);
-    res.status(500).send('Error generating zip package');
-  }
-});
-
-// Serve Windows CMD runner script download
-app.get(['/download/Run_Classroom_Server.cmd', '/download/Run_Classroom_Server.bat'], (req, res) => {
+// Windows Standalone Launcher Script (.bat / .cmd)
+app.get('/download/Run_Classroom_Server.cmd', (req, res) => {
   const script = `@echo off
 chcp 65001 >nul
 title خادم اختبارات الحصة الذكية - Classroom Quiz Server
@@ -559,7 +404,7 @@ color 0B
 cls
 echo ===============================================================================
 echo                خادم اختبارات الحصة الذكية - Classroom Quiz Server
-echo                                 نسخة ويندوز
+echo                           نسخة الويندوز الاحترافية
 echo ===============================================================================
 echo.
 echo [1/4] جاري فحص بيئة العمل والشبكة...
@@ -589,8 +434,10 @@ echo.
 echo ===============================================================================
 echo  [2/4] تم تشغيل الخادم بنجاح! جاهز لاستقبال حتى 50 طالباً في وقت واحد بدون تعليق.
 echo -------------------------------------------------------------------------------
-echo  رابط دخول الطلاب من الجوالات والتابلت:
+echo  رابط دخول الطلاب من الجوالات والتابلت (اطلب من الطلاب الدخول عليه):
 echo  http://%LOCAL_IP%:3000
+echo.
+echo  أو مسح رمز QR المعروض على شاشتك أو البروجيكتور.
 echo ===============================================================================
 echo.
 echo [3/4] جاري فتح لوحة تحكم المعلم في متصفحك...
@@ -599,6 +446,10 @@ start http://localhost:3000
 
 echo.
 echo [4/4] الخادم يعمل الآن بشكل مستمر!
+echo * اترك هذه النافذة مفتوحة طوال الحصة.
+echo * لإيقاف الخادم: اضغط Ctrl + C ثم Y
+echo.
+
 %NODE_CMD% standalone-server.js
 pause
 `;
@@ -607,70 +458,22 @@ pause
   res.send(script);
 });
 
-// Serve Windows batch runner script download
-app.get('/download/run-windows.bat', (req, res) => {
-  const script = `@echo off
-chcp 65001 >nul
-cls
-echo ========================================================
-echo     خادم اختبارات الحصة الذكية - Classroom Quiz Server
-echo ========================================================
-echo.
-echo [1/3] جاري فحص بيئة العمل وتشغيل الخادم المحلي...
-echo.
-
-:: Get local IP address
-for /f "tokens=4" %%a in ('route print^|find " 0.0.0.0"') do (
-    set LOCAL_IP=%%a
-)
-
-echo [2/3] تم تشغيل الخادم على الشبكة المحلية!
-echo.
-echo --------------------------------------------------------
-echo  عنوان دخول الطلاب من الجوالات أو التابلت:
-echo  http://%LOCAL_IP%:3000
-echo --------------------------------------------------------
-echo.
-echo [3/3] جاري فتح لوحة تحكم المعلم في المتصفح...
-start http://localhost:3000
-
-echo.
-echo ملاحظة: اترك هذه النافذة السوداء مفتوحة طوال فترة الحصة والاختبار.
-echo لإيقاف الخادم اضغط Ctrl + C ثم Y
-echo.
-
-npm run dev
-pause
-`;
-  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-  res.setHeader('Content-Disposition', 'attachment; filename="Run_Quiz_Server.bat"');
-  res.send(script);
-});
-
-// Setup Vite middleware in dev or static files in production
-async function startServer() {
-  if (process.env.NODE_ENV !== 'production') {
-    const { createServer: createViteServer } = await import('vite');
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(__dirname, 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
-  }
-
-  // Bind to 0.0.0.0 so all devices on the same Wi-Fi / Hotspot can connect!
-  app.listen(Number(PORT), '0.0.0.0', () => {
-    console.log(`[Classroom Quiz Server] Listening on http://0.0.0.0:${PORT}`);
-    const ips = getLocalIPs();
-    console.log(`Available on local network at:`);
-    ips.forEach((ip) => console.log(`  http://${ip}:${PORT}`));
+// Serve pre-built static files with caching
+const distPath = path.join(__dirname, 'dist');
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath, { maxAge: '1h' }));
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(distPath, 'index.html'));
   });
 }
 
-startServer();
+const server = app.listen(Number(PORT), '0.0.0.0', () => {
+  console.log(`[Classroom Quiz Server] Running on http://0.0.0.0:${PORT}`);
+  const ips = getLocalIPs();
+  console.log(`Accessible from local devices at:`);
+  ips.forEach((ip) => console.log(`  http://${ip}:${PORT}`));
+});
+
+// Keep-alive settings for high concurrency (40+ concurrent devices)
+server.keepAliveTimeout = 65000;
+server.headersTimeout = 66000;
