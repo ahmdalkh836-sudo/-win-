@@ -1,0 +1,6 @@
+{
+  "name": "خادم اختبارات الحصة الذكية | Classroom Quiz Server",
+  "description": "خادم وبوابة اختبارات الحصة والأنشطة التفاعلية عبر شبكة Wi-Fi المحلية بدون إنترنت مع حماية مكافحة الغش وإدارة الدرجات.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
