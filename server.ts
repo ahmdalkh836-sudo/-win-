@@ -490,59 +490,55 @@ app.get('/download/windows-portable-package.zip', async (req, res) => {
 
     // 1. Add Run_Classroom_Server.cmd
     const cmdScript = `@echo off
-chcp 65001 >nul
-title خادم اختبارات الحصة الذكية - Classroom Quiz Server
+setlocal EnableDelayedExpansion
+cd /d "%~dp0"
+title Classroom Quiz Server
 color 0B
 cls
-echo ===============================================================================
-echo                خادم اختبارات الحصة الذكية - Classroom Quiz Server
-echo                                 نسخة ويندوز
-echo ===============================================================================
-echo.
-echo [1/4] جاري فحص بيئة العمل والشبكة...
 
-:: Check if Node.js is installed
-where node >nul 2>nul
-if %errorlevel% neq 0 (
-    echo [تنبيه] Node.js غير مثبت في نظامك. جاري تجهيز الخادم تلقائياً...
-    powershell -Command "Write-Host 'جاري تحميل محرك التشغيل السريع Portable...' -ForegroundColor Yellow; Invoke-WebRequest -Uri 'https://nodejs.org/dist/v20.11.1/win-x64/node.exe' -OutFile 'node.exe'"
-    if exist node.exe (
-        set "NODE_CMD=node.exe"
-    ) else (
-        echo [خطأ] تعذر تحميل محرك التشغيل تلقائياً. يرجى تثبيت Node.js من: https://nodejs.org
-        pause
-        exit /b
-    )
-) else (
-    set "NODE_CMD=node"
+echo ============================================================
+echo           Classroom Quiz Server - Starting Server
+echo ============================================================
+echo.
+
+set "PY_CMD="
+
+python --version >nul 2>&1
+if not errorlevel 1 (
+    set "PY_CMD=python"
+    goto :START_PY
 )
 
-:: Get Wi-Fi or Hotspot Local IPv4
-for /f "tokens=4" %%a in ('route print ^| findstr "\\<0.0.0.0\\>"') do (
-    set "LOCAL_IP=%%a"
+py --version >nul 2>&1
+if not errorlevel 1 (
+    set "PY_CMD=py"
+    goto :START_PY
 )
 
-echo.
-echo ===============================================================================
-echo  [2/4] تم تشغيل الخادم بنجاح! جاهز لاستقبال حتى 50 طالباً في وقت واحد بدون تعليق.
-echo -------------------------------------------------------------------------------
-echo  رابط دخول الطلاب من الجوالات والتابلت:
-echo  http://%LOCAL_IP%:3000
-echo.
-echo  أو مسح رمز QR المعروض على شاشتك أو البروجيكتور.
-echo ===============================================================================
-echo.
-echo [3/4] جاري فتح لوحة تحكم المعلم في متصفحك...
-timeout /t 2 >nul
+python3 --version >nul 2>&1
+if not errorlevel 1 (
+    set "PY_CMD=python3"
+    goto :START_PY
+)
+
+node --version >nul 2>&1
+if not errorlevel 1 (
+    echo [*] Starting server with Node.js engine...
+    start http://localhost:3000
+    node standalone-server.js
+    goto :END
+)
+
+echo [!] Python or Node.js was not found. Please install Python from https://www.python.org/
+pause
+exit /b 1
+
+:START_PY
+echo [*] Starting server with %PY_CMD%...
 start http://localhost:3000
+%PY_CMD% classroom_server.py
 
-echo.
-echo [4/4] الخادم يعمل الآن بشكل مستمر!
-echo * اترك هذه النافذة مفتوحة طوال الحصة.
-echo * لإيقاف الخادم: اضغط Ctrl + C ثم Y
-echo.
-
-%NODE_CMD% standalone-server.js
+:END
 pause
 `;
     zip.file('Run_Classroom_Server.cmd', cmdScript);
@@ -712,53 +708,55 @@ app.get('/download/student_html.py', (req, res) => {
 // Serve Windows CMD runner script download
 app.get(['/download/Run_Classroom_Server.cmd', '/download/Run_Classroom_Server.bat'], (req, res) => {
   const script = `@echo off
-chcp 65001 >nul
-title خادم اختبارات الحصة الذكية - Classroom Quiz Server
+setlocal EnableDelayedExpansion
+cd /d "%~dp0"
+title Classroom Quiz Server
 color 0B
 cls
-echo ===============================================================================
-echo                خادم اختبارات الحصة الذكية - Classroom Quiz Server
-echo                                 نسخة ويندوز
-echo ===============================================================================
-echo.
-echo [1/4] جاري فحص بيئة العمل والشبكة...
 
-:: Check if Node is installed
-where node >nul 2>nul
-if %errorlevel% neq 0 (
-    echo [تنبيه] Node.js غير مثبت في نظامك. جاري تجهيز الخادم تلقائياً...
-    powershell -Command "Write-Host 'جاري تحميل محرك التشغيل السريع Portable...' -ForegroundColor Yellow; Invoke-WebRequest -Uri 'https://nodejs.org/dist/v20.11.1/win-x64/node.exe' -OutFile 'node.exe'"
-    if exist node.exe (
-        set "NODE_CMD=node.exe"
-    ) else (
-        echo [خطأ] تعذر تحميل محرك التشغيل تلقائياً. يرجى تثبيت Node.js من: https://nodejs.org
-        pause
-        exit /b
-    )
-) else (
-    set "NODE_CMD=node"
+echo ============================================================
+echo           Classroom Quiz Server - Starting Server
+echo ============================================================
+echo.
+
+set "PY_CMD="
+
+python --version >nul 2>&1
+if not errorlevel 1 (
+    set "PY_CMD=python"
+    goto :START_PY
 )
 
-:: Get Wi-Fi or Hotspot Local IPv4
-for /f "tokens=4" %%a in ('route print ^| findstr "\\<0.0.0.0\\>"') do (
-    set "LOCAL_IP=%%a"
+py --version >nul 2>&1
+if not errorlevel 1 (
+    set "PY_CMD=py"
+    goto :START_PY
 )
 
-echo.
-echo ===============================================================================
-echo  [2/4] تم تشغيل الخادم بنجاح! جاهز لاستقبال حتى 50 طالباً في وقت واحد بدون تعليق.
-echo -------------------------------------------------------------------------------
-echo  رابط دخول الطلاب من الجوالات والتابلت:
-echo  http://%LOCAL_IP%:3000
-echo ===============================================================================
-echo.
-echo [3/4] جاري فتح لوحة تحكم المعلم في متصفحك...
-timeout /t 2 >nul
+python3 --version >nul 2>&1
+if not errorlevel 1 (
+    set "PY_CMD=python3"
+    goto :START_PY
+)
+
+node --version >nul 2>&1
+if not errorlevel 1 (
+    echo [*] Starting server with Node.js engine...
+    start http://localhost:3000
+    node standalone-server.js
+    goto :END
+)
+
+echo [!] Python or Node.js was not found. Please install Python from https://www.python.org/
+pause
+exit /b 1
+
+:START_PY
+echo [*] Starting server with %PY_CMD%...
 start http://localhost:3000
+%PY_CMD% classroom_server.py
 
-echo.
-echo [4/4] الخادم يعمل الآن بشكل مستمر!
-%NODE_CMD% standalone-server.js
+:END
 pause
 `;
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');

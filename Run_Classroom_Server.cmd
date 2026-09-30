@@ -10,7 +10,6 @@ echo           Classroom Quiz Server - Starting Server
 echo ============================================================
 echo.
 
-:: 1. Detect Python or Node
 set "PY_CMD="
 
 python --version >nul 2>&1
@@ -31,32 +30,21 @@ if not errorlevel 1 (
     goto :START_PY
 )
 
-:: 2. Fallback to Node.js if Python not installed
 node --version >nul 2>&1
 if not errorlevel 1 (
-    echo [*] Python not detected. Running with Node.js engine...
+    echo [*] Launching server with Node.js...
     start http://localhost:3000
     node standalone-server.js
     goto :END
 )
 
-echo [!] Python or Node.js was not found on your system.
-echo [!] Please install Python from: https://www.python.org/
-echo.
+echo [!] Python or Node.js was not found. Please install Python from https://www.python.org/
 pause
 exit /b 1
 
 :START_PY
-echo [*] Python engine detected: %PY_CMD%
-echo [*] Opening Teacher Dashboard in browser...
-timeout /t 1 >nul
+echo [*] Starting server with %PY_CMD%...
 start http://localhost:3000
-echo.
-echo ============================================================
-echo  [OK] Server is ACTIVE on port 3000!
-echo  Keep this black window OPEN during your class.
-echo ============================================================
-echo.
 %PY_CMD% classroom_server.py
 
 :END

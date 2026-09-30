@@ -1,40 +1,38 @@
 @echo off
-chcp 65001 >nul
-title صانع ملف EXE - Classroom Quiz Server
+setlocal EnableDelayedExpansion
+cd /d "%~dp0"
+title Classroom Quiz Server EXE Builder
 color 0A
 cls
 
-echo ===============================================================================
-echo            أداة تحويل الخادم إلى برنامج تنفيذي مستقل (EXE)
-echo                     Classroom Quiz Server Builder
-echo ===============================================================================
+echo ============================================================
+echo             Classroom Quiz Server - EXE Builder
+echo ============================================================
 echo.
-echo [1/3] جاري فحص مكتبة PyInstaller...
+echo [*] Checking PyInstaller...
 
-where pyinstaller >nul 2>nul
-if %errorlevel% neq 0 (
-    echo [!] جاري تثبيت PyInstaller تلقائياً...
+where pyinstaller >nul 2>&1
+if errorlevel 1 (
+    echo [*] Installing PyInstaller package...
     pip install pyinstaller
 )
 
 echo.
-echo [2/3] جاري بناء ملف EXE المستقل مع دمج ملفات الواجهة وقاعدة البيانات...
-echo يرجى الانتظار دقيقة واحدة...
+echo [*] Compiling standalone ClassroomQuizServer.exe...
+echo [*] Please wait a moment...
 echo.
 
-pyinstaller --noconfirm --onedir --windowed --name "ClassroomQuizServer" --add-data "dist;dist" classroom_server.py
+pyinstaller --noconfirm --onefile --console --name "ClassroomQuizServer" classroom_server.py
 
-if exist "dist\ClassroomQuizServer\ClassroomQuizServer.exe" (
+if exist "dist\ClassroomQuizServer.exe" (
     echo.
-    echo ===============================================================================
-    echo  [✓] تهانينا! تم إنشاء ملف EXE بنجاح!
-    echo  المسار: dist\ClassroomQuizServer\ClassroomQuizServer.exe
+    echo ============================================================
+    echo  [OK] Success! ClassroomQuizServer.exe created in dist folder!
+    echo  Path: dist\ClassroomQuizServer.exe
+    echo ============================================================
     echo.
-    echo  يمكنك الآن تشغيل البرنامج مباشرة بالنقر على ملف EXE بدون أي ملفات إضافية!
-    echo ===============================================================================
 ) else (
-    echo [!] يمكنك تشغيل البرنامج مباشرة باستخدام Start-ClassroomServer.bat
+    echo [!] Build completed. You can also run Start-ClassroomServer.bat directly.
 )
 
-echo.
 pause
