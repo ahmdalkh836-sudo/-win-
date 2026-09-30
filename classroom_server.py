@@ -20,6 +20,14 @@ import threading
 import urllib.parse
 from datetime import datetime
 
+try:
+    from teacher_html import get_teacher_html
+    from student_html import get_student_html
+except ImportError:
+    # Fallback inline if separate files not imported
+    get_teacher_html = None
+    get_student_html = None
+
 PORT = 3000
 DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'classroom_data.db')
 DIST_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dist')
@@ -325,7 +333,31 @@ class ClassroomHTTPHandler(http.server.SimpleHTTPRequestHandler):
             })
             return
 
-        # Static files fallback from dist directory
+        local_ip = get_local_ip()
+
+        # Student portal route
+        if path.startswith('/student'):
+            if get_student_html:
+                content = get_student_html(local_ip, PORT).encode('utf-8')
+                self.send_response(200)
+                self.send_header('Content-Type', 'text/html; charset=utf-8')
+                self.send_header('Content-Length', str(len(content)))
+                self.end_headers()
+                self.wfile.write(content)
+                return
+
+        # Main route / Teacher dashboard
+        if path in ['/', '/teacher', '/index.html']:
+            if get_teacher_html:
+                content = get_teacher_html(local_ip, PORT).encode('utf-8')
+                self.send_response(200)
+                self.send_header('Content-Type', 'text/html; charset=utf-8')
+                self.send_header('Content-Length', str(len(content)))
+                self.end_headers()
+                self.wfile.write(content)
+                return
+
+        # Static files fallback from dist directory (if present)
         if os.path.exists(DIST_DIR):
             file_path = os.path.join(DIST_DIR, path.lstrip('/'))
             if os.path.isfile(file_path):
@@ -336,6 +368,16 @@ class ClassroomHTTPHandler(http.server.SimpleHTTPRequestHandler):
             if os.path.isfile(index_path):
                 self.serve_static_file(index_path)
                 return
+
+        # Absolute fallback if anything else requested: return teacher dashboard
+        if get_teacher_html:
+            content = get_teacher_html(local_ip, PORT).encode('utf-8')
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/html; charset=utf-8')
+            self.send_header('Content-Length', str(len(content)))
+            self.end_headers()
+            self.wfile.write(content)
+            return
 
         self.send_error(404, "File not found")
 

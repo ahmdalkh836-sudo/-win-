@@ -486,6 +486,16 @@ pause
       zip.file('classroom_server.py', fs.readFileSync(pyServerPath, 'utf-8'));
     }
 
+    const teacherHtmlPath = path.join(__dirname, 'teacher_html.py');
+    if (fs.existsSync(teacherHtmlPath)) {
+      zip.file('teacher_html.py', fs.readFileSync(teacherHtmlPath, 'utf-8'));
+    }
+
+    const studentHtmlPath = path.join(__dirname, 'student_html.py');
+    if (fs.existsSync(studentHtmlPath)) {
+      zip.file('student_html.py', fs.readFileSync(studentHtmlPath, 'utf-8'));
+    }
+
     const startBatPath = path.join(__dirname, 'Start-ClassroomServer.bat');
     if (fs.existsSync(startBatPath)) {
       zip.file('Start-ClassroomServer.bat', fs.readFileSync(startBatPath, 'utf-8'));
@@ -589,6 +599,42 @@ app.get('/download/Create-EXE.bat', (req, res) => {
   if (fs.existsSync(filePath)) {
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     res.setHeader('Content-Disposition', 'attachment; filename="Create-EXE.bat"');
+    res.sendFile(filePath);
+  } else {
+    res.status(404).send('File not found');
+  }
+});
+
+// Serve classroom_server.py download
+app.get('/download/classroom_server.py', (req, res) => {
+  const filePath = path.join(__dirname, 'classroom_server.py');
+  if (fs.existsSync(filePath)) {
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="classroom_server.py"');
+    res.sendFile(filePath);
+  } else {
+    res.status(404).send('File not found');
+  }
+});
+
+// Serve teacher_html.py download
+app.get('/download/teacher_html.py', (req, res) => {
+  const filePath = path.join(__dirname, 'teacher_html.py');
+  if (fs.existsSync(filePath)) {
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="teacher_html.py"');
+    res.sendFile(filePath);
+  } else {
+    res.status(404).send('File not found');
+  }
+});
+
+// Serve student_html.py download
+app.get('/download/student_html.py', (req, res) => {
+  const filePath = path.join(__dirname, 'student_html.py');
+  if (fs.existsSync(filePath)) {
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="student_html.py"');
     res.sendFile(filePath);
   } else {
     res.status(404).send('File not found');
