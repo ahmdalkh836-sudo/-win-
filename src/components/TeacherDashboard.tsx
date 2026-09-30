@@ -58,6 +58,7 @@ interface TeacherDashboardProps {
   onOpenQRCode: () => void;
   onOpenWindowsGuide: () => void;
   onOpenEditStudent: (student: Student) => void;
+  onOpenTeacherSetup?: () => void;
   onSwitchToStudentView: () => void;
   onRefreshNetwork: () => void;
 }
@@ -78,6 +79,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   onOpenQRCode,
   onOpenWindowsGuide,
   onOpenEditStudent,
+  onOpenTeacherSetup,
   onSwitchToStudentView,
   onRefreshNetwork,
 }) => {
@@ -368,15 +370,37 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
             </button>
           </div>
 
-          {/* Quick Windows Download Button */}
-          <a
-            href="/download/windows-portable-package.zip"
-            download="Classroom_Quiz_Server_Windows.zip"
-            className="w-full py-2.5 px-4 bg-gradient-to-r from-blue-700 via-indigo-600 to-purple-700 hover:from-blue-600 hover:to-purple-600 text-white text-xs font-bold rounded-2xl shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer border border-blue-400/30"
-          >
-            <Download className="w-4 h-4 text-blue-200" />
-            <span>تحميل حزمة ويندوز للتشغيل في الفصل بدون إنترنت (Portable ZIP / EXE) 💻</span>
-          </a>
+          {/* Quick Windows Download Buttons Matching Screenshot */}
+          <div className="space-y-2">
+            <a
+              href="/download/windows-portable-package.zip"
+              download="Classroom_Quiz_Server_Windows.zip"
+              className="w-full py-2.5 px-4 bg-gradient-to-r from-blue-700 via-indigo-600 to-purple-700 hover:from-blue-600 hover:to-purple-600 text-white text-xs font-bold rounded-2xl shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer border border-blue-400/30"
+            >
+              <Download className="w-4 h-4 text-blue-200" />
+              <span>تحميل حزمة ويندوز الكاملة (Start-ClassroomServer.bat & Create-EXE.bat) 💻</span>
+            </a>
+
+            <div className="grid grid-cols-2 gap-2 text-[11px] font-bold">
+              <a
+                href="/download/Start-ClassroomServer.bat"
+                download="Start-ClassroomServer.bat"
+                className="py-2 px-3 bg-slate-900 hover:bg-slate-800 text-emerald-400 border border-emerald-500/30 rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>تحميل Start-ClassroomServer.bat</span>
+              </a>
+
+              <a
+                href="/download/Create-EXE.bat"
+                download="Create-EXE.bat"
+                className="py-2 px-3 bg-slate-900 hover:bg-slate-800 text-purple-300 border border-purple-500/30 rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>تحميل Create-EXE.bat (صانع EXE)</span>
+              </a>
+            </div>
+          </div>
 
           <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-purple-500/20">
             <button
@@ -753,7 +777,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               </div>
 
               <button
-                onClick={() => setEditingProfile(true)}
+                onClick={() => (onOpenTeacherSetup ? onOpenTeacherSetup() : setEditingProfile(true))}
                 className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-750 text-purple-300 border border-purple-500/30 text-xs font-bold transition-colors cursor-pointer"
               >
                 تعديل 🖊️

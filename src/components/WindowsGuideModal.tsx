@@ -241,6 +241,45 @@ pause
               </p>
             </div>
 
+            {/* Download Specific BAT Files matching Screenshot */}
+            <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
+              <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+                <Terminal className="w-4 h-4 text-emerald-400" />
+                <span>تحميل ملفات التشغيل وصناعة EXE (مطابقة لصورتك):</span>
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between">
+                  <div>
+                    <strong className="block text-emerald-400 font-mono text-[11px]">Start-ClassroomServer.bat</strong>
+                    <span className="text-[10px] text-slate-400">تشغيل السيرفر المحلي فوراً</span>
+                  </div>
+                  <a
+                    href="/download/Start-ClassroomServer.bat"
+                    download="Start-ClassroomServer.bat"
+                    className="p-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
+                    title="تحميل"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+
+                <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between">
+                  <div>
+                    <strong className="block text-purple-300 font-mono text-[11px]">Create-EXE.bat</strong>
+                    <span className="text-[10px] text-slate-400">بناء ملف EXE المستقل</span>
+                  </div>
+                  <a
+                    href="/download/Create-EXE.bat"
+                    download="Create-EXE.bat"
+                    className="p-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold"
+                    title="تحميل"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              </div>
+            </div>
+
             {/* How to make it an EXE */}
             <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2 text-xs">
               <h4 className="font-bold text-white flex items-center gap-1.5">

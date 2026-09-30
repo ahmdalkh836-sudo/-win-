@@ -480,19 +480,40 @@ pause
     zip.file('Run_Classroom_Server.cmd', cmdScript);
     zip.file('Run_Classroom_Server.bat', cmdScript);
 
-    // 2. Add standalone-server.js
+    // 2. Add Python server files matching user screenshot
+    const pyServerPath = path.join(__dirname, 'classroom_server.py');
+    if (fs.existsSync(pyServerPath)) {
+      zip.file('classroom_server.py', fs.readFileSync(pyServerPath, 'utf-8'));
+    }
+
+    const startBatPath = path.join(__dirname, 'Start-ClassroomServer.bat');
+    if (fs.existsSync(startBatPath)) {
+      zip.file('Start-ClassroomServer.bat', fs.readFileSync(startBatPath, 'utf-8'));
+    }
+
+    const createExePath = path.join(__dirname, 'Create-EXE.bat');
+    if (fs.existsSync(createExePath)) {
+      zip.file('Create-EXE.bat', fs.readFileSync(createExePath, 'utf-8'));
+    }
+
+    const readmeWinPath = path.join(__dirname, 'README-WINDOWS.txt');
+    if (fs.existsSync(readmeWinPath)) {
+      zip.file('README-WINDOWS.txt', fs.readFileSync(readmeWinPath, 'utf-8'));
+    }
+
+    // 3. Add standalone-server.js
     const standaloneServerPath = path.join(__dirname, 'standalone-server.js');
     if (fs.existsSync(standaloneServerPath)) {
       zip.file('standalone-server.js', fs.readFileSync(standaloneServerPath, 'utf-8'));
     }
 
-    // 3. Add package.json
+    // 4. Add package.json
     const packageJsonPath = path.join(__dirname, 'package.json');
     if (fs.existsSync(packageJsonPath)) {
       zip.file('package.json', fs.readFileSync(packageJsonPath, 'utf-8'));
     }
 
-    // 4. Add Readme in Arabic
+    // 5. Add Readme in Arabic
     const readmeText = `===================================================================
      دليل تشغيل خادم اختبارات الحصة الذكية على نظام Windows
 ===================================================================
@@ -547,6 +568,30 @@ pause
   } catch (err) {
     console.error('Failed to generate zip:', err);
     res.status(500).send('Error generating zip package');
+  }
+});
+
+// Serve Start-ClassroomServer.bat download
+app.get('/download/Start-ClassroomServer.bat', (req, res) => {
+  const filePath = path.join(__dirname, 'Start-ClassroomServer.bat');
+  if (fs.existsSync(filePath)) {
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="Start-ClassroomServer.bat"');
+    res.sendFile(filePath);
+  } else {
+    res.status(404).send('File not found');
+  }
+});
+
+// Serve Create-EXE.bat download
+app.get('/download/Create-EXE.bat', (req, res) => {
+  const filePath = path.join(__dirname, 'Create-EXE.bat');
+  if (fs.existsSync(filePath)) {
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="Create-EXE.bat"');
+    res.sendFile(filePath);
+  } else {
+    res.status(404).send('File not found');
   }
 });
 

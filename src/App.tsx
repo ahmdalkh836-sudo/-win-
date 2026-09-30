@@ -13,7 +13,8 @@ import { QRCodeModal } from './components/QRCodeModal';
 import { CreateQuizModal } from './components/CreateQuizModal';
 import { WindowsGuideModal } from './components/WindowsGuideModal';
 import { EditGradesModal } from './components/EditGradesModal';
-import { Laptop, Smartphone, HelpCircle } from 'lucide-react';
+import { TeacherSetupModal } from './components/TeacherSetupModal';
+import { Laptop, Smartphone, HelpCircle, UserCog } from 'lucide-react';
 
 export default function App() {
   // Current View: 'teacher' | 'student'
@@ -26,9 +27,12 @@ export default function App() {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [settings, setSettings] = useState<TeacherSettings>({
-    name: 'احمد صبري',
+    username: 'ahmed_teacher',
+    name: 'أ. أحمد صبري',
     subject: 'فيزياء ثانوي',
     phone: '0533333333',
+    password: '123',
+    isConfigured: true,
     theme: 'purple',
     darkMode: true,
     antiCheat: true,
@@ -52,6 +56,7 @@ export default function App() {
   const [isQRCodeOpen, setIsQRCodeOpen] = useState(false);
   const [isCreateQuizOpen, setIsCreateQuizOpen] = useState(false);
   const [isWindowsGuideOpen, setIsWindowsGuideOpen] = useState(false);
+  const [isTeacherSetupOpen, setIsTeacherSetupOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
 
   // Initial load & URL check
@@ -294,6 +299,7 @@ export default function App() {
           onOpenQRCode={() => setIsQRCodeOpen(true)}
           onOpenWindowsGuide={() => setIsWindowsGuideOpen(true)}
           onOpenEditStudent={(std) => setEditingStudent(std)}
+          onOpenTeacherSetup={() => setIsTeacherSetupOpen(true)}
           onSwitchToStudentView={() => setActiveRole('student')}
           onRefreshNetwork={fetchNetworkInfo}
         />
@@ -313,6 +319,16 @@ export default function App() {
       )}
 
       {/* MODALS */}
+      <TeacherSetupModal
+        isOpen={isTeacherSetupOpen || !settings.isConfigured}
+        initialSettings={settings}
+        onSave={(updated) => {
+          handleUpdateSettings(updated);
+          setIsTeacherSetupOpen(false);
+        }}
+        onClose={() => setIsTeacherSetupOpen(false)}
+      />
+
       <QRCodeModal
         isOpen={isQRCodeOpen}
         onClose={() => setIsQRCodeOpen(false)}

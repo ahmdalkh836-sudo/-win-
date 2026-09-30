@@ -24,6 +24,8 @@ export interface Student {
   name: string;
   nationalId: string;
   phone: string;
+  gradeLevel: 'first' | 'second' | 'third'; // أول ثانوي | ثاني ثانوي | ثالث ثانوي
+  section: '1' | '2' | '3' | '4'; // شعبة 1 إلى 4
   gradeSection: string;
   password?: string;
   exam1: number;
@@ -62,9 +64,12 @@ export interface ActivityLog {
 }
 
 export interface TeacherSettings {
+  username: string;
   name: string;
   subject: string;
   phone: string;
+  password?: string;
+  isConfigured: boolean;
   theme: ThemeAccent;
   darkMode: boolean;
   antiCheat: boolean;

@@ -51,7 +51,8 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
   const [name, setName] = useState('');
   const [nationalId, setNationalId] = useState('');
   const [phone, setPhone] = useState('');
-  const [gradeSection, setGradeSection] = useState('أول ثانوي - شعبة 1');
+  const [gradeLevel, setGradeLevel] = useState<'first' | 'second' | 'third'>('first');
+  const [section, setSection] = useState<'1' | '2' | '3' | '4'>('1');
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
 
@@ -166,6 +167,10 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
     e.preventDefault();
     setAuthError('');
 
+    const gradeLabel =
+      gradeLevel === 'first' ? 'أول ثانوي' : gradeLevel === 'second' ? 'ثاني ثانوي' : 'ثالث ثانوي';
+    const computedGradeSection = `${gradeLabel} - شعبة ${section}`;
+
     try {
       const res = await fetch('/api/students/auth', {
         method: 'POST',
@@ -175,7 +180,9 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
           name,
           nationalId,
           phone,
-          gradeSection,
+          gradeLevel,
+          section,
+          gradeSection: computedGradeSection,
           password,
         }),
       });
@@ -339,18 +346,54 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                     />
                   </div>
 
+                  {/* الصف الدراسي: أول، ثاني، ثالث ثانوي */}
                   <div>
-                    <label className="block text-xs font-bold mb-1 text-slate-700 dark:text-slate-300">
-                      الصف والشعبة: *
+                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-slate-300">
+                      الصف الدراسي: *
                     </label>
-                    <input
-                      type="text"
-                      required
-                      value={gradeSection}
-                      onChange={(e) => setGradeSection(e.target.value)}
-                      placeholder="مثال: أول ثانوي - شعبة 1"
-                      className="w-full px-4 py-2.5 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-transparent focus:outline-none focus:border-blue-600"
-                    />
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { id: 'first', label: 'أول ثانوي' },
+                        { id: 'second', label: 'ثاني ثانوي' },
+                        { id: 'third', label: 'ثالث ثانوي' },
+                      ].map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => setGradeLevel(item.id as any)}
+                          className={`py-2 px-1 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
+                            gradeLevel === item.id
+                              ? 'bg-blue-600 text-white border-blue-600 shadow'
+                              : 'bg-slate-50 dark:bg-slate-900 border-slate-300 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-400'
+                          }`}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* الشعبة: من 1 إلى 4 */}
+                  <div>
+                    <label className="block text-xs font-bold mb-1.5 text-slate-700 dark:text-slate-300">
+                      الشعبة (من 1 إلى 4): *
+                    </label>
+                    <div className="grid grid-cols-4 gap-2">
+                      {['1', '2', '3', '4'].map((sec) => (
+                        <button
+                          key={sec}
+                          type="button"
+                          onClick={() => setSection(sec as any)}
+                          className={`py-2 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
+                            section === sec
+                              ? 'bg-blue-600 text-white border-blue-600 shadow'
+                              : 'bg-slate-50 dark:bg-slate-900 border-slate-300 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-400'
+                          }`}
+                        >
+                          شعبة {sec}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </>
               )}
